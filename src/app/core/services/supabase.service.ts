@@ -14,18 +14,22 @@ import {
 import { SoundService } from './sound.service';
 import { MASTER_USER_ID } from './auth.service';
 
-const DATA_VERSION_KEY = 'by_data_version';
-const CURRENT_VERSION = 'master_tenant_2026_10_16_v2';
+const FALLBACK_SUPABASE_URL = 'https://ybwggbohmbrkppwwslqv.supabase.co';
+const FALLBACK_SUPABASE_ANON_KEY = 'sb_publishable_Pn_WI-_bp0g74I-nCIiRWA_MGOYi2p3';
+const FALLBACK_MASTER_USER_ID = '00000000-0000-0000-0000-000000000001';
 
 @Injectable({
   providedIn: 'root'
 })
 export class SupabaseService {
-  public readonly masterUserId = MASTER_USER_ID;
+  // Master User UUID - Fallback or environment configurable
+  public readonly MASTER_USER_ID = environment.MASTER_USER_ID || MASTER_USER_ID || FALLBACK_MASTER_USER_ID;
+  public readonly masterUserId = this.MASTER_USER_ID;
 
   private sound = inject(SoundService);
   private supabase: SupabaseClient;
   private liveChannel: RealtimeChannel | null = null;
+  private dbChannel: RealtimeChannel | null = null;
   private midnightCheckInterval: any = null;
 
   // Connection and sync statuses
@@ -41,7 +45,7 @@ export class SupabaseService {
   public dailyHabits = signal<DailyHabits | null>(null);
   public encouragements = signal<EncouragementMessage[]>([]);
 
-  // Active Calendar Date (defaults to today: 2026-10-16)
+  // Active Calendar Date (defaults to today: YYYY-MM-DD)
   public selectedDate = signal<string>(this.getTodayDateString());
   public todayDateString = signal<string>(this.getTodayDateString());
 
@@ -98,7 +102,7 @@ export class SupabaseService {
     return count;
   });
 
-  // Streak Calculation strictly computed from master historical data
+  // Streak strictly computed from logged days
   public streakData = computed<StreakData>(() => {
     const today = this.todayDateString();
     const todayStudyMet = this.todayStudyHours() >= 8;
@@ -166,7 +170,10 @@ export class SupabaseService {
   });
 
   constructor() {
-    this.supabase = createClient(environment.supabaseUrl, environment.supabasePublishableKey, {
+    const url = environment?.supabaseUrl || (environment as any)?.SUPABASE_URL || FALLBACK_SUPABASE_URL;
+    const key = environment?.supabasePublishableKey || (environment as any)?.SUPABASE_ANON_KEY || FALLBACK_SUPABASE_ANON_KEY;
+
+    this.supabase = createClient(url, key, {
       auth: { persistSession: true },
       realtime: {
         params: {
@@ -175,9 +182,8 @@ export class SupabaseService {
       }
     });
 
-    this.purgeLegacyMockData();
     this.setupNetworkListeners();
-    this.initDefaultData();
+    this.restoreCachedState();
     this.loadAllData();
     this.setupRealtimeSync();
     this.setupMidnightResetMonitor();
@@ -189,27 +195,6 @@ export class SupabaseService {
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
-  }
-
-  private purgeLegacyMockData(): void {
-    if (typeof localStorage !== 'undefined') {
-      const storedVersion = localStorage.getItem(DATA_VERSION_KEY);
-      if (storedVersion !== CURRENT_VERSION) {
-        localStorage.removeItem('by_study_sessions');
-        localStorage.removeItem('by_courses');
-        localStorage.removeItem('by_sleep_logs');
-        localStorage.removeItem('by_encouragements');
-        localStorage.removeItem('by_career_tasks');
-
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && (key.startsWith('by_habits_') || key.startsWith('by_career_'))) {
-            localStorage.removeItem(key);
-          }
-        }
-        localStorage.setItem(DATA_VERSION_KEY, CURRENT_VERSION);
-      }
-    }
   }
 
   private setupNetworkListeners(): void {
@@ -239,19 +224,27 @@ export class SupabaseService {
     }
   }
 
-  private initDefaultData(): void {
+  private restoreCachedState(): void {
     if (typeof localStorage !== 'undefined') {
       const storedStudy = localStorage.getItem('by_study_sessions');
-      if (storedStudy) this.studySessions.set(JSON.parse(storedStudy));
+      if (storedStudy) {
+        try { this.studySessions.set(JSON.parse(storedStudy)); } catch {}
+      }
 
       const storedCourses = localStorage.getItem('by_courses');
-      if (storedCourses) this.courses.set(JSON.parse(storedCourses));
+      if (storedCourses) {
+        try { this.courses.set(JSON.parse(storedCourses)); } catch {}
+      }
 
       const storedSleep = localStorage.getItem('by_sleep_logs');
-      if (storedSleep) this.sleepLogs.set(JSON.parse(storedSleep));
+      if (storedSleep) {
+        try { this.sleepLogs.set(JSON.parse(storedSleep)); } catch {}
+      }
 
       const storedEncouragements = localStorage.getItem('by_encouragements');
-      if (storedEncouragements) this.encouragements.set(JSON.parse(storedEncouragements));
+      if (storedEncouragements) {
+        try { this.encouragements.set(JSON.parse(storedEncouragements)); } catch {}
+      }
 
       this.loadHabitsForDate(this.selectedDate());
     }
@@ -281,33 +274,38 @@ export class SupabaseService {
     if (typeof localStorage !== 'undefined') {
       const stored = localStorage.getItem(`by_habits_${date}`);
       if (stored) {
-        this.dailyHabits.set(JSON.parse(stored));
-      } else {
-        const freshHabits: DailyHabits = {
-          id: 'h_' + date,
-          user_id: this.masterUserId,
-          habit_date: date,
-          fajr: false,
-          dhuhr: false,
-          asr: false,
-          maghrib: false,
-          isha: false,
-          morning_athkar: false,
-          evening_athkar: false,
-          workout_done: false,
-          workout_type: '',
-          reading_pages: 0,
-          reading_book: '',
-          reading_target: 20
-        };
-        this.dailyHabits.set(freshHabits);
+        try {
+          this.dailyHabits.set(JSON.parse(stored));
+          return;
+        } catch {}
       }
     }
+
+    const freshHabits: DailyHabits = {
+      id: 'h_' + date,
+      user_id: this.MASTER_USER_ID,
+      habit_date: date,
+      fajr: false,
+      dhuhr: false,
+      asr: false,
+      maghrib: false,
+      isha: false,
+      morning_athkar: false,
+      evening_athkar: false,
+      workout_done: false,
+      workout_type: 'Full Body',
+      reading_pages: 0,
+      reading_book: '',
+      reading_target: 20
+    };
+    this.dailyHabits.set(freshHabits);
   }
 
   private saveLocal(key: string, data: any): void {
     if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(key, JSON.stringify(data));
+      try {
+        localStorage.setItem(key, JSON.stringify(data));
+      } catch {}
     }
   }
 
@@ -318,28 +316,25 @@ export class SupabaseService {
         this.fetchCourses(),
         this.fetchSleepLogs(),
         this.fetchDailyHabits(this.selectedDate()),
-        this.fetchLiveUserState(),
         this.fetchEncouragements()
       ]);
       this.isConnectedToSupabase.set(true);
       this.lastSyncTime.set(new Date());
       this.syncError.set(null);
     } catch (err: any) {
-      console.warn('Supabase offline or initial fetch fallback:', err.message);
-      this.syncError.set(err.message);
+      console.warn('Supabase fetch notice:', err?.message);
+      this.syncError.set(err?.message || 'Sync warning');
     }
   }
 
   // --- MULTI-DEVICE REALTIME WEBSOCKET SUBSCRIPTION ---
   private setupRealtimeSync(): void {
     try {
+      // 1. Broadcast channel for instantaneous timer ticks & companion cheers
       this.liveChannel = this.supabase.channel('accountability_master_channel', {
-        config: {
-          broadcast: { self: false }
-        }
+        config: { broadcast: { self: false } }
       });
 
-      // WebSocket broadcast listeners for instantaneous sub-second streaming
       this.liveChannel
         .on('broadcast', { event: 'timer_state' }, (payload: any) => {
           if (payload && payload['payload']) {
@@ -360,82 +355,55 @@ export class SupabaseService {
             this.handleIncomingEncouragement(msg);
           }
         })
-        // Postgres real-time database change listeners for cross-device synchronization
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'daily_habits',
-          filter: `user_id=eq.${this.masterUserId}`
-        }, (payload: any) => {
-          if (payload.new && payload.new.habit_date === this.selectedDate()) {
-            this.dailyHabits.set(payload.new as DailyHabits);
-            this.saveLocal(`by_habits_${payload.new.habit_date}`, payload.new);
+        .subscribe();
+
+      // 2. Postgres change listeners for multi-device cross-browser database updates
+      this.dbChannel = this.supabase.channel('db_sync_channel');
+
+      this.dbChannel
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_habits' }, (payload: any) => {
+          const rec = payload.new;
+          if (rec && rec.date === this.selectedDate()) {
+            const mapped: DailyHabits = {
+              id: rec.id,
+              user_id: rec.user_id || this.MASTER_USER_ID,
+              habit_date: rec.date,
+              fajr: !!rec.fajr,
+              dhuhr: !!rec.dhuhr,
+              asr: !!rec.asr,
+              maghrib: !!rec.maghrib,
+              isha: !!rec.isha,
+              morning_athkar: !!rec.morning_athkar,
+              evening_athkar: !!rec.evening_athkar,
+              workout_done: !!rec.gym,
+              workout_type: 'Full Body',
+              reading_pages: Number(rec.pages_read) || 0,
+              reading_book: '',
+              reading_target: 20
+            };
+            this.dailyHabits.set(mapped);
+            this.saveLocal(`by_habits_${rec.date}`, mapped);
           } else {
             this.fetchDailyHabits(this.selectedDate());
           }
         })
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'study_sessions',
-          filter: `user_id=eq.${this.masterUserId}`
-        }, () => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'study_sessions' }, () => {
           this.fetchStudySessions();
         })
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'sleep_logs',
-          filter: `user_id=eq.${this.masterUserId}`
-        }, () => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'sleep_logs' }, () => {
           this.fetchSleepLogs();
         })
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'courses',
-          filter: `user_id=eq.${this.masterUserId}`
-        }, () => {
-          this.fetchCourses();
-        })
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'live_user_state',
-          filter: `user_id=eq.${this.masterUserId}`
-        }, (payload: any) => {
-          if (payload.new) {
-            this.liveTimerState.set({
-              isStudying: !!payload.new.is_studying,
-              timerMode: payload.new.timer_mode || 'stopwatch',
-              elapsedSeconds: payload.new.elapsed_seconds || 0,
-              targetSeconds: 0,
-              sessionTitle: payload.new.session_title || '',
-              updatedAt: Date.now()
-            });
-          }
-        })
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'encouragements',
-          filter: `user_id=eq.${this.masterUserId}`
-        }, (payload: any) => {
-          if (payload.new) {
-            this.handleIncomingEncouragement(payload.new as EncouragementMessage);
-          }
-        })
         .subscribe();
+
     } catch (e) {
-      console.warn('Realtime channel error or offline:', e);
+      console.warn('Realtime channel setup notice:', e);
     }
   }
 
-  // --- LIVE TIMER & FOCUS STATUS BROADCAST & SUPABASE PERSISTENCE ---
-  public async broadcastTimerState(state: LiveTimerState): Promise<void> {
+  // --- LIVE TIMER & FOCUS STATUS BROADCAST ---
+  public broadcastTimerState(state: LiveTimerState): void {
     this.liveTimerState.set(state);
 
-    // 1. Broadcast over WebSocket for sub-second live rendering
     if (this.liveChannel) {
       try {
         this.liveChannel.send({
@@ -444,38 +412,6 @@ export class SupabaseService {
           payload: state
         });
       } catch (err) {}
-    }
-
-    // 2. Persist to live_user_state table in Supabase so new devices instantly restore state
-    try {
-      await this.supabase.from('live_user_state').upsert([{
-        id: this.masterUserId,
-        user_id: this.masterUserId,
-        is_studying: state.isStudying,
-        timer_mode: state.timerMode,
-        elapsed_seconds: state.elapsedSeconds,
-        session_title: state.sessionTitle,
-        updated_at: new Date().toISOString()
-      }]);
-    } catch (err) {}
-  }
-
-  public async fetchLiveUserState(): Promise<void> {
-    const { data } = await this.supabase
-      .from('live_user_state')
-      .select('*')
-      .eq('user_id', this.masterUserId)
-      .maybeSingle();
-
-    if (data) {
-      this.liveTimerState.set({
-        isStudying: !!data.is_studying,
-        timerMode: data.timer_mode || 'stopwatch',
-        elapsedSeconds: data.elapsed_seconds || 0,
-        targetSeconds: 0,
-        sessionTitle: data.session_title || '',
-        updatedAt: Date.now()
-      });
     }
   }
 
@@ -510,7 +446,6 @@ export class SupabaseService {
     this.encouragements.set(updated);
     this.saveLocal('by_encouragements', updated);
 
-    // Broadcast across channel
     if (this.liveChannel) {
       try {
         this.liveChannel.send({
@@ -519,18 +454,6 @@ export class SupabaseService {
           payload: newMsg
         });
       } catch (err) {}
-    }
-
-    // Persist to Supabase with master_user_id
-    try {
-      await this.supabase.from('encouragements').insert([{
-        user_id: this.masterUserId,
-        sender_name: newMsg.sender_name,
-        message: newMsg.message,
-        reaction_type: newMsg.reaction_type
-      }]);
-    } catch (e) {
-      console.warn('Encouragement saved locally:', e);
     }
   }
 
@@ -556,44 +479,48 @@ export class SupabaseService {
     this.activeEncouragementToast.set(null);
   }
 
-  // --- DAILY HABITS (MASTER SINGLE-TENANT & UNIFIED RESTORATION) ---
+  // --- DAILY HABITS (DIRECT SELECT & PERSISTENCE) ---
   public async fetchDailyHabits(date: string): Promise<void> {
-    const { data, error } = await this.supabase
-      .from('daily_habits')
-      .select('*')
-      .eq('user_id', this.masterUserId)
-      .eq('habit_date', date)
-      .maybeSingle();
+    try {
+      const { data, error } = await this.supabase
+        .from('daily_habits')
+        .select('*')
+        .eq('user_id', this.MASTER_USER_ID)
+        .eq('date', date)
+        .maybeSingle();
 
-    if (!error && data) {
-      this.dailyHabits.set(data as DailyHabits);
-      this.saveLocal(`by_habits_${date}`, data);
-    } else if (!data) {
-      // Unified initial state restoration: create fresh zeroed row in Supabase
-      const fresh: DailyHabits = {
-        id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'h_' + Date.now(),
-        user_id: this.masterUserId,
-        habit_date: date,
-        fajr: false,
-        dhuhr: false,
-        asr: false,
-        maghrib: false,
-        isha: false,
-        morning_athkar: false,
-        evening_athkar: false,
-        workout_done: false,
-        workout_type: '',
-        reading_pages: 0,
-        reading_book: '',
-        reading_target: 20
-      };
+      if (!error && data) {
+        const mapped: DailyHabits = {
+          id: data.id,
+          user_id: data.user_id || this.MASTER_USER_ID,
+          habit_date: data.date || date,
+          fajr: !!data.fajr,
+          dhuhr: !!data.dhuhr,
+          asr: !!data.asr,
+          maghrib: !!data.maghrib,
+          isha: !!data.isha,
+          morning_athkar: !!data.morning_athkar,
+          evening_athkar: !!data.evening_athkar,
+          workout_done: !!data.gym,
+          workout_type: 'Full Body',
+          reading_pages: Number(data.pages_read) || 0,
+          reading_book: 'Current Book',
+          reading_target: 20
+        };
 
-      this.dailyHabits.set(fresh);
-      this.saveLocal(`by_habits_${date}`, fresh);
-
-      try {
-        await this.supabase.from('daily_habits').insert([fresh]);
-      } catch (err) {}
+        this.dailyHabits.set(mapped);
+        this.saveLocal(`by_habits_${date}`, mapped);
+      } else if (!data) {
+        // Only load local if Supabase had no entry
+        const stored = typeof localStorage !== 'undefined' ? localStorage.getItem(`by_habits_${date}`) : null;
+        if (stored) {
+          try {
+            this.dailyHabits.set(JSON.parse(stored));
+          } catch {}
+        }
+      }
+    } catch (e) {
+      console.warn('fetchDailyHabits fallback to cache:', e);
     }
   }
 
@@ -604,55 +531,84 @@ export class SupabaseService {
     const updated: DailyHabits = {
       ...current,
       ...patch,
-      user_id: this.masterUserId
+      user_id: this.MASTER_USER_ID
     };
 
+    // Immediate reactive signal update & local persistence
     this.dailyHabits.set(updated);
     this.saveLocal(`by_habits_${updated.habit_date}`, updated);
     this.broadcastHabitState(updated);
 
+    // Explicit Supabase update/insert mapped to database columns
+    const dbPayload = {
+      user_id: this.MASTER_USER_ID,
+      date: updated.habit_date,
+      fajr: updated.fajr,
+      dhuhr: updated.dhuhr,
+      asr: updated.asr,
+      maghrib: updated.maghrib,
+      isha: updated.isha,
+      morning_athkar: updated.morning_athkar,
+      evening_athkar: updated.evening_athkar,
+      gym: updated.workout_done,
+      pages_read: updated.reading_pages
+    };
+
     try {
-      await this.supabase
+      const { data: existing } = await this.supabase
         .from('daily_habits')
-        .upsert([{
-          user_id: this.masterUserId,
-          habit_date: updated.habit_date,
-          fajr: updated.fajr,
-          dhuhr: updated.dhuhr,
-          asr: updated.asr,
-          maghrib: updated.maghrib,
-          isha: updated.isha,
-          morning_athkar: updated.morning_athkar,
-          evening_athkar: updated.evening_athkar,
-          workout_done: updated.workout_done,
-          workout_type: updated.workout_type,
-          reading_pages: updated.reading_pages,
-          reading_book: updated.reading_book,
-          reading_target: updated.reading_target
-        }], { onConflict: 'user_id,habit_date' });
-    } catch (e) {
-      console.warn('Updated daily habits locally:', e);
+        .select('id')
+        .eq('user_id', this.MASTER_USER_ID)
+        .eq('date', updated.habit_date)
+        .maybeSingle();
+
+      if (existing && existing.id) {
+        await this.supabase
+          .from('daily_habits')
+          .update(dbPayload)
+          .eq('id', existing.id);
+      } else {
+        await this.supabase
+          .from('daily_habits')
+          .insert([dbPayload]);
+      }
+    } catch (err) {
+      console.warn('Direct daily_habits sync notice:', err);
     }
   }
 
-  // --- STUDY SESSIONS (MASTER SINGLE-TENANT) ---
+  // --- STUDY SESSIONS (DIRECT SELECT & PERSISTENCE) ---
   public async fetchStudySessions(): Promise<void> {
-    const { data, error } = await this.supabase
-      .from('study_sessions')
-      .select('*')
-      .eq('user_id', this.masterUserId)
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await this.supabase
+        .from('study_sessions')
+        .select('*')
+        .eq('user_id', this.MASTER_USER_ID)
+        .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      this.studySessions.set(data as StudySession[]);
-      this.saveLocal('by_study_sessions', data);
+      if (!error && data) {
+        const mapped: StudySession[] = data.map((d: any) => ({
+          id: d.id,
+          user_id: d.user_id || this.MASTER_USER_ID,
+          session_date: (d.created_at || '').substring(0, 10),
+          duration_minutes: Number(d.duration_minutes) || 0,
+          title: d.subject_or_course || d.title || 'Study Session',
+          mode: (d.mode || 'stopwatch') as any,
+          notes: d.notes || '',
+          created_at: d.created_at
+        }));
+        this.studySessions.set(mapped);
+        this.saveLocal('by_study_sessions', mapped);
+      }
+    } catch (e) {
+      console.warn('fetchStudySessions notice:', e);
     }
   }
 
   public async addStudySession(session: Omit<StudySession, 'id' | 'created_at' | 'user_id'>): Promise<StudySession> {
     const newSession: StudySession = {
       ...session,
-      user_id: this.masterUserId,
+      user_id: this.MASTER_USER_ID,
       id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 's_' + Date.now(),
       created_at: new Date().toISOString()
     };
@@ -662,27 +618,30 @@ export class SupabaseService {
     this.saveLocal('by_study_sessions', updated);
 
     try {
+      const dbPayload = {
+        user_id: this.MASTER_USER_ID,
+        duration_minutes: newSession.duration_minutes,
+        subject_or_course: newSession.title || 'Study Session',
+        created_at: newSession.created_at
+      };
+
       const { data, error } = await this.supabase
         .from('study_sessions')
-        .insert([{
-          user_id: this.masterUserId,
-          duration_minutes: newSession.duration_minutes,
-          title: newSession.title,
-          mode: newSession.mode,
-          notes: newSession.notes || '',
-          session_date: newSession.session_date
-        }])
+        .insert([dbPayload])
         .select()
         .single();
 
       if (!error && data) {
-        const replaced = updated.map(s => s.id === newSession.id ? (data as StudySession) : s);
+        const replaced = updated.map(s => s.id === newSession.id ? {
+          ...s,
+          id: data.id,
+          created_at: data.created_at
+        } : s);
         this.studySessions.set(replaced);
         this.saveLocal('by_study_sessions', replaced);
-        return data as StudySession;
       }
-    } catch (e) {
-      console.warn('Saved study session locally:', e);
+    } catch (err) {
+      console.warn('Study session persistence notice:', err);
     }
     return newSession;
   }
@@ -697,24 +656,66 @@ export class SupabaseService {
         .from('study_sessions')
         .delete()
         .eq('id', id)
-        .eq('user_id', this.masterUserId);
+        .eq('user_id', this.MASTER_USER_ID);
     } catch (e) {
       console.warn('Deleted locally:', e);
     }
   }
 
-  // --- SLEEP LOGS (MASTER SINGLE-TENANT) ---
+  // --- SLEEP LOGS (DIRECT SELECT & PERSISTENCE) ---
   public async fetchSleepLogs(): Promise<void> {
-    const { data, error } = await this.supabase
-      .from('sleep_logs')
-      .select('*')
-      .eq('user_id', this.masterUserId)
-      .order('log_date', { ascending: false })
-      .limit(60);
+    try {
+      const { data, error } = await this.supabase
+        .from('sleep_logs')
+        .select('*')
+        .eq('user_id', this.MASTER_USER_ID)
+        .order('created_at', { ascending: false })
+        .limit(60);
 
-    if (!error && data) {
-      this.sleepLogs.set(data as SleepLog[]);
-      this.saveLocal('by_sleep_logs', data);
+      if (!error && data) {
+        const mapped: SleepLog[] = data.map((d: any) => {
+          const parseTime = (iso: string) => {
+            if (!iso) return '00:00';
+            if (iso.length === 5 && iso.includes(':')) return iso;
+            try {
+              const dt = new Date(iso);
+              return `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
+            } catch {
+              return '00:00';
+            }
+          };
+
+          const sTime = parseTime(d.sleep_time);
+          const wTime = parseTime(d.wake_time);
+
+          let total = 8;
+          try {
+            const [sh, sm] = sTime.split(':').map(Number);
+            const [wh, wm] = wTime.split(':').map(Number);
+            let start = sh * 60 + sm;
+            let end = wh * 60 + wm;
+            if (end <= start) end += 24 * 60;
+            total = Math.round(((end - start) / 60) * 10) / 10;
+          } catch {}
+
+          return {
+            id: d.id,
+            user_id: d.user_id || this.MASTER_USER_ID,
+            log_date: (d.created_at || '').substring(0, 10),
+            sleep_time: sTime,
+            wake_time: wTime,
+            total_hours: total,
+            quality_rating: Number(d.quality_rating) || 4,
+            notes: '',
+            created_at: d.created_at
+          };
+        });
+
+        this.sleepLogs.set(mapped);
+        this.saveLocal('by_sleep_logs', mapped);
+      }
+    } catch (e) {
+      console.warn('fetchSleepLogs notice:', e);
     }
   }
 
@@ -722,7 +723,7 @@ export class SupabaseService {
     const existingIndex = this.sleepLogs().findIndex(l => l.log_date === log.log_date);
     const newLog: SleepLog = {
       ...log,
-      user_id: this.masterUserId,
+      user_id: this.MASTER_USER_ID,
       id: existingIndex >= 0 ? this.sleepLogs()[existingIndex].id : (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'sl_' + Date.now()),
       created_at: new Date().toISOString()
     };
@@ -738,76 +739,64 @@ export class SupabaseService {
     this.saveLocal('by_sleep_logs', updatedLogs);
 
     try {
-      const { data, error } = await this.supabase
-        .from('sleep_logs')
-        .upsert([{
-          user_id: this.masterUserId,
-          log_date: newLog.log_date,
-          sleep_time: newLog.sleep_time,
-          wake_time: newLog.wake_time,
-          total_hours: newLog.total_hours,
-          quality_rating: newLog.quality_rating,
-          notes: newLog.notes || ''
-        }], { onConflict: 'user_id,log_date' })
-        .select()
-        .single();
+      const dateBase = log.log_date || this.getTodayDateString();
+      const toIso = (timeStr: string) => {
+        const parts = (timeStr || '00:00').split(':');
+        const h = parts[0].padStart(2, '0');
+        const m = (parts[1] || '00').padStart(2, '0');
+        return new Date(`${dateBase}T${h}:${m}:00Z`).toISOString();
+      };
 
-      if (!error && data) {
-        const replaced = updatedLogs.map(l => l.log_date === newLog.log_date ? (data as SleepLog) : l);
-        this.sleepLogs.set(replaced);
-        this.saveLocal('by_sleep_logs', replaced);
-        return data as SleepLog;
+      const dbPayload = {
+        user_id: this.MASTER_USER_ID,
+        sleep_time: toIso(newLog.sleep_time),
+        wake_time: toIso(newLog.wake_time),
+        quality_rating: newLog.quality_rating,
+        created_at: dateBase
+      };
+
+      const { data: existing } = await this.supabase
+        .from('sleep_logs')
+        .select('id')
+        .eq('user_id', this.MASTER_USER_ID)
+        .eq('created_at', dateBase)
+        .maybeSingle();
+
+      if (existing && existing.id) {
+        await this.supabase
+          .from('sleep_logs')
+          .update(dbPayload)
+          .eq('id', existing.id);
+      } else {
+        await this.supabase
+          .from('sleep_logs')
+          .insert([dbPayload]);
       }
-    } catch (e) {
-      console.warn('Saved sleep log locally:', e);
+    } catch (err) {
+      console.warn('Sleep log persistence notice:', err);
     }
 
     return newLog;
   }
 
-  // --- COURSES (MASTER SINGLE-TENANT) ---
+  // --- COURSES ---
   public async fetchCourses(): Promise<void> {
-    const { data, error } = await this.supabase
-      .from('courses')
-      .select('*')
-      .eq('user_id', this.masterUserId)
-      .order('created_at', { ascending: true });
-
-    if (!error && data) {
-      this.courses.set(data as Course[]);
-      this.saveLocal('by_courses', data);
+    const stored = typeof localStorage !== 'undefined' ? localStorage.getItem('by_courses') : null;
+    if (stored) {
+      try { this.courses.set(JSON.parse(stored)); } catch {}
     }
   }
 
   public async addCourse(course: Omit<Course, 'id' | 'created_at' | 'user_id'>): Promise<void> {
     const newCourse: Course = {
       ...course,
-      user_id: this.masterUserId,
+      user_id: this.MASTER_USER_ID,
       id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'c_' + Date.now(),
       created_at: new Date().toISOString()
     };
     const updated = [...this.courses(), newCourse];
     this.courses.set(updated);
     this.saveLocal('by_courses', updated);
-
-    try {
-      const { data, error } = await this.supabase
-        .from('courses')
-        .insert([{
-          ...course,
-          user_id: this.masterUserId
-        }])
-        .select()
-        .single();
-
-      if (!error && data) {
-        const replaced = updated.map(c => c.id === newCourse.id ? (data as Course) : c);
-        this.courses.set(replaced);
-        this.saveLocal('by_courses', replaced);
-      }
-    } catch (e) {
-      console.warn('Saved course locally:', e);
-    }
   }
 
   public async updateCourseProgress(id: string, delta: number): Promise<void> {
@@ -818,46 +807,19 @@ export class SupabaseService {
     const updated = this.courses().map(c => (c.id === id ? { ...c, completed_modules: newCompleted } : c));
     this.courses.set(updated);
     this.saveLocal('by_courses', updated);
-
-    try {
-      await this.supabase
-        .from('courses')
-        .update({ completed_modules: newCompleted })
-        .eq('id', id)
-        .eq('user_id', this.masterUserId);
-    } catch (e) {
-      console.warn('Updated course progress locally:', e);
-    }
   }
 
   public async deleteCourse(id: string): Promise<void> {
     const updated = this.courses().filter(c => c.id !== id);
     this.courses.set(updated);
     this.saveLocal('by_courses', updated);
-
-    try {
-      await this.supabase
-        .from('courses')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', this.masterUserId);
-    } catch (e) {
-      console.warn('Deleted course locally:', e);
-    }
   }
 
   // --- ENCOURAGEMENTS ---
   public async fetchEncouragements(): Promise<void> {
-    const { data, error } = await this.supabase
-      .from('encouragements')
-      .select('*')
-      .eq('user_id', this.masterUserId)
-      .order('created_at', { ascending: false })
-      .limit(50);
-
-    if (!error && data) {
-      this.encouragements.set(data as EncouragementMessage[]);
-      this.saveLocal('by_encouragements', data);
+    const stored = typeof localStorage !== 'undefined' ? localStorage.getItem('by_encouragements') : null;
+    if (stored) {
+      try { this.encouragements.set(JSON.parse(stored)); } catch {}
     }
   }
 }

@@ -1,4 +1,4 @@
-import { Component, inject, signal, effect, OnDestroy, HostListener } from '@angular/core';
+import { Component, inject, signal, effect, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../core/services/supabase.service';
@@ -449,7 +449,7 @@ import { LiveTimerState } from '../../core/models/tracker.models';
     </div>
   `
 })
-export class StudyTrackerComponent implements OnDestroy {
+export class StudyTrackerComponent implements OnInit, OnDestroy {
   public supabase = inject(SupabaseService);
   private sound = inject(SoundService);
 
@@ -459,6 +459,11 @@ export class StudyTrackerComponent implements OnDestroy {
   public targetSeconds = signal<number>(0);
   public sessionTitle = '';
   public isZenMode = signal<boolean>(false);
+
+  ngOnInit(): void {
+    // Explicit mandatory fetch on component init
+    this.supabase.fetchStudySessions();
+  }
 
   public showAddCourse = signal<boolean>(false);
   public newCourseTitle = '';

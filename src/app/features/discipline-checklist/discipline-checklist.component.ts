@@ -1,4 +1,4 @@
-import { Component, inject, computed } from '@angular/core';
+import { Component, inject, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../core/services/supabase.service';
@@ -312,11 +312,16 @@ import { DailyHabits } from '../../core/models/tracker.models';
     </div>
   `
 })
-export class DisciplineChecklistComponent {
+export class DisciplineChecklistComponent implements OnInit {
   public supabase = inject(SupabaseService);
   private sound = inject(SoundService);
 
   public habits = computed(() => this.supabase.dailyHabits());
+
+  ngOnInit(): void {
+    // Explicit mandatory fetch on component init
+    this.supabase.fetchDailyHabits(this.supabase.selectedDate());
+  }
 
   public async togglePrayer(prayer: 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha'): Promise<void> {
     const current = this.habits();

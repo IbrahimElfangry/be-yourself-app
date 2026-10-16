@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, effect } from '@angular/core';
+import { Component, inject, signal, computed, effect, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../core/services/supabase.service';
@@ -243,7 +243,7 @@ import { SleepLog } from '../../core/models/tracker.models';
     </div>
   `
 })
-export class SleepTrackerComponent {
+export class SleepTrackerComponent implements OnInit {
   public supabase = inject(SupabaseService);
   private sound = inject(SoundService);
 
@@ -253,6 +253,11 @@ export class SleepTrackerComponent {
   public notes = '';
 
   public currentSleepRecord = computed(() => this.supabase.todaySleepLog());
+
+  ngOnInit(): void {
+    // Explicit mandatory fetch on component init
+    this.supabase.fetchSleepLogs();
+  }
 
   public calculatedHours = signal<number>(0);
 
