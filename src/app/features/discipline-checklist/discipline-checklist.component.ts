@@ -66,13 +66,13 @@ import { DailyHabits } from '../../core/models/tracker.models';
             <!-- FAJR -->
             <label 
               (click)="togglePrayer('fajr')"
-              class="flex items-center justify-between p-3.5 rounded-xl border cursor-pointer select-none transition-all group"
+              class="flex items-center justify-between p-3.5 rounded-xl border cursor-pointer select-none transition-all active:scale-[0.98] min-h-[54px] group"
               [ngClass]="habits()?.fajr ? 'bg-emerald-950/20 border-emerald-500/40 text-white' : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'">
               <div class="flex items-center gap-3">
-                <div class="w-5 h-5 rounded-lg border flex items-center justify-center transition-all"
+                <div class="w-6 h-6 rounded-lg border flex items-center justify-center transition-all"
                   [ngClass]="habits()?.fajr ? 'bg-emerald-500 border-emerald-400 text-slate-950 font-bold' : 'border-slate-700 bg-slate-900'">
                   @if (habits()?.fajr) {
-                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                   }
                 </div>
                 <div>
@@ -86,13 +86,13 @@ import { DailyHabits } from '../../core/models/tracker.models';
             <!-- DHUHR -->
             <label 
               (click)="togglePrayer('dhuhr')"
-              class="flex items-center justify-between p-3.5 rounded-xl border cursor-pointer select-none transition-all group"
+              class="flex items-center justify-between p-3.5 rounded-xl border cursor-pointer select-none transition-all active:scale-[0.98] min-h-[54px] group"
               [ngClass]="habits()?.dhuhr ? 'bg-emerald-950/20 border-emerald-500/40 text-white' : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'">
               <div class="flex items-center gap-3">
-                <div class="w-5 h-5 rounded-lg border flex items-center justify-center transition-all"
+                <div class="w-6 h-6 rounded-lg border flex items-center justify-center transition-all"
                   [ngClass]="habits()?.dhuhr ? 'bg-emerald-500 border-emerald-400 text-slate-950 font-bold' : 'border-slate-700 bg-slate-900'">
                   @if (habits()?.dhuhr) {
-                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                   }
                 </div>
                 <div>
@@ -106,13 +106,13 @@ import { DailyHabits } from '../../core/models/tracker.models';
             <!-- ASR -->
             <label 
               (click)="togglePrayer('asr')"
-              class="flex items-center justify-between p-3.5 rounded-xl border cursor-pointer select-none transition-all group"
+              class="flex items-center justify-between p-3.5 rounded-xl border cursor-pointer select-none transition-all active:scale-[0.98] min-h-[54px] group"
               [ngClass]="habits()?.asr ? 'bg-emerald-950/20 border-emerald-500/40 text-white' : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'">
               <div class="flex items-center gap-3">
-                <div class="w-5 h-5 rounded-lg border flex items-center justify-center transition-all"
+                <div class="w-6 h-6 rounded-lg border flex items-center justify-center transition-all"
                   [ngClass]="habits()?.asr ? 'bg-emerald-500 border-emerald-400 text-slate-950 font-bold' : 'border-slate-700 bg-slate-900'">
                   @if (habits()?.asr) {
-                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                   }
                 </div>
                 <div>
@@ -126,13 +126,13 @@ import { DailyHabits } from '../../core/models/tracker.models';
             <!-- MAGHRIB -->
             <label 
               (click)="togglePrayer('maghrib')"
-              class="flex items-center justify-between p-3.5 rounded-xl border cursor-pointer select-none transition-all group"
+              class="flex items-center justify-between p-3.5 rounded-xl border cursor-pointer select-none transition-all active:scale-[0.98] min-h-[54px] group"
               [ngClass]="habits()?.maghrib ? 'bg-emerald-950/20 border-emerald-500/40 text-white' : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'">
               <div class="flex items-center gap-3">
-                <div class="w-5 h-5 rounded-lg border flex items-center justify-center transition-all"
+                <div class="w-6 h-6 rounded-lg border flex items-center justify-center transition-all"
                   [ngClass]="habits()?.maghrib ? 'bg-emerald-500 border-emerald-400 text-slate-950 font-bold' : 'border-slate-700 bg-slate-900'">
                   @if (habits()?.maghrib) {
-                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                   }
                 </div>
                 <div>
@@ -146,13 +146,13 @@ import { DailyHabits } from '../../core/models/tracker.models';
             <!-- ISHA -->
             <label 
               (click)="togglePrayer('isha')"
-              class="flex items-center justify-between p-3.5 rounded-xl border cursor-pointer select-none transition-all group"
+              class="flex items-center justify-between p-3.5 rounded-xl border cursor-pointer select-none transition-all active:scale-[0.98] min-h-[54px] group"
               [ngClass]="habits()?.isha ? 'bg-emerald-950/20 border-emerald-500/40 text-white' : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'">
               <div class="flex items-center gap-3">
-                <div class="w-5 h-5 rounded-lg border flex items-center justify-center transition-all"
+                <div class="w-6 h-6 rounded-lg border flex items-center justify-center transition-all"
                   [ngClass]="habits()?.isha ? 'bg-emerald-500 border-emerald-400 text-slate-950 font-bold' : 'border-slate-700 bg-slate-900'">
                   @if (habits()?.isha) {
-                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                   }
                 </div>
                 <div>
@@ -214,7 +214,7 @@ import { DailyHabits } from '../../core/models/tracker.models';
             <button
               type="button"
               (click)="toggleWorkout()"
-              class="w-full p-4 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1.5 focus:outline-none"
+              class="w-full p-4 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1.5 focus:outline-none active:scale-[0.98] min-h-[58px]"
               [ngClass]="habits()?.workout_done ? 'bg-gradient-to-r from-emerald-950/60 to-emerald-900/40 border-emerald-500/50 shadow-lg shadow-emerald-500/10' : 'bg-slate-950 border-slate-800 hover:border-slate-700'">
               <div class="flex items-center gap-2 text-sm font-black tracking-wide" [ngClass]="habits()?.workout_done ? 'text-emerald-400' : 'text-slate-400'">
                 @if (habits()?.workout_done) {
@@ -286,22 +286,22 @@ import { DailyHabits } from '../../core/models/tracker.models';
             <div class="grid grid-cols-4 gap-2 pt-1">
               <button
                 (click)="addPages(5)"
-                class="py-2 rounded-lg bg-slate-950 border border-slate-800 hover:border-cyan-500 text-xs font-mono font-bold text-slate-300 hover:text-white transition-all">
+                class="py-2.5 rounded-lg bg-slate-950 border border-slate-800 hover:border-cyan-500 active:scale-95 text-xs font-mono font-bold text-slate-300 hover:text-white transition-all min-h-[44px]">
                 +5 pgs
               </button>
               <button
                 (click)="addPages(10)"
-                class="py-2 rounded-lg bg-slate-950 border border-slate-800 hover:border-cyan-500 text-xs font-mono font-bold text-slate-300 hover:text-white transition-all">
+                class="py-2.5 rounded-lg bg-slate-950 border border-slate-800 hover:border-cyan-500 active:scale-95 text-xs font-mono font-bold text-slate-300 hover:text-white transition-all min-h-[44px]">
                 +10 pgs
               </button>
               <button
                 (click)="addPages(25)"
-                class="py-2 rounded-lg bg-slate-950 border border-slate-800 hover:border-cyan-500 text-xs font-mono font-bold text-slate-300 hover:text-white transition-all">
+                class="py-2.5 rounded-lg bg-slate-950 border border-slate-800 hover:border-cyan-500 active:scale-95 text-xs font-mono font-bold text-slate-300 hover:text-white transition-all min-h-[44px]">
                 +25 pgs
               </button>
               <button
                 (click)="resetPages()"
-                class="py-2 rounded-lg bg-slate-950 border border-slate-800 hover:border-rose-500 text-xs font-mono font-medium text-slate-500 hover:text-rose-400 transition-all">
+                class="py-2.5 rounded-lg bg-slate-950 border border-slate-800 hover:border-rose-500 active:scale-95 text-xs font-mono font-medium text-slate-500 hover:text-rose-400 transition-all min-h-[44px]">
                 Reset
               </button>
             </div>

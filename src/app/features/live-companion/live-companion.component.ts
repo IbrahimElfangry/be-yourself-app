@@ -1,15 +1,16 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { SoundService } from '../../core/services/sound.service';
+import { AuthService } from '../../core/services/auth.service';
 import { EncouragementMessage } from '../../core/models/tracker.models';
 
 @Component({
   selector: 'app-live-companion',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-cyan-500 selection:text-slate-950">
 
@@ -24,33 +25,35 @@ import { EncouragementMessage } from '../../core/models/tracker.models';
               </div>
               <div>
                 <div class="flex items-center gap-2">
-                  <h1 class="font-black text-lg tracking-wider text-white">LIVE COMPANION FEED</h1>
+                  <h1 class="font-black text-base sm:text-lg tracking-wider text-white">LIVE COMPANION FEED</h1>
                   <span class="px-2 py-0.5 text-[10px] font-bold tracking-widest bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-full flex items-center gap-1.5">
                     <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
-                    READ-ONLY STREAM
+                    READ-ONLY
                   </span>
                 </div>
-                <p class="text-[10px] text-slate-400 font-mono">ACCOUNTABILITY PARTNER RADAR • WEBSOCKET REALTIME</p>
+                <p class="text-[10px] text-slate-400 font-mono">ACCOUNTABILITY RADAR • WEBSOCKET REALTIME</p>
               </div>
             </div>
 
             <!-- Header Action Controls -->
-            <div class="flex items-center gap-3">
-              <!-- Live WebSocket Ping -->
-              <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono">
+            <div class="flex items-center gap-2 sm:gap-3">
+              <!-- Live State Indicator -->
+              <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono">
                 <span class="w-2 h-2 rounded-full" [ngClass]="supabase.liveTimerState().isStudying ? 'bg-emerald-400 animate-ping' : 'bg-cyan-400'"></span>
                 <span class="text-slate-300">
                   {{ supabase.liveTimerState().isStudying ? 'User Actively Studying' : 'User Idle / In Routine' }}
                 </span>
               </div>
 
-              <!-- Back to Main App -->
-              <a
-                routerLink="/"
-                class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs text-slate-300 hover:text-white font-semibold transition-colors flex items-center gap-1.5">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-                <span>Main App</span>
-              </a>
+              <!-- Unlock Master Access Modal Trigger -->
+              <button
+                (click)="togglePinModal()"
+                title="Master User Unlock PIN"
+                class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs text-slate-300 hover:text-white font-semibold transition-all flex items-center gap-1.5 min-h-[38px]">
+                <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                <span class="hidden sm:inline">Master Unlock</span>
+                <span class="sm:hidden">Unlock</span>
+              </button>
             </div>
 
           </div>
@@ -65,7 +68,7 @@ import { EncouragementMessage } from '../../core/models/tracker.models';
               <button
                 (click)="activeView.set('live')"
                 [class]="activeView() === 'live' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30' : 'text-slate-400 hover:text-slate-200'"
-                class="px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5">
+                class="px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 min-h-[36px]">
                 <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
                 Real-Time Live Radar
               </button>
@@ -73,23 +76,23 @@ import { EncouragementMessage } from '../../core/models/tracker.models';
               <button
                 (click)="activeView.set('history')"
                 [class]="activeView() === 'history' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30' : 'text-slate-400 hover:text-slate-200'"
-                class="px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5">
+                class="px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 min-h-[36px]">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                 Performance History & Logs
               </button>
             </div>
 
-            <!-- Date Selector & Streak Indicator for Partner -->
-            <div class="flex items-center gap-2">
+            <!-- Date Selector & Streak Indicator for Companion -->
+            <div class="flex items-center justify-between sm:justify-end gap-2">
               <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-xl text-xs">
-                <button (click)="supabase.navigateDate(-1)" class="text-slate-400 hover:text-white px-1">◀</button>
+                <button (click)="supabase.navigateDate(-1)" class="text-slate-400 hover:text-white px-1.5 py-1 min-h-[32px]">◀</button>
                 <input
                   type="date"
                   [ngModel]="supabase.selectedDate()"
                   (ngModelChange)="supabase.setSelectedDate($event)"
                   class="bg-transparent text-white font-mono text-[11px] focus:outline-none cursor-pointer"
                 />
-                <button (click)="supabase.navigateDate(1)" class="text-slate-400 hover:text-white px-1">▶</button>
+                <button (click)="supabase.navigateDate(1)" class="text-slate-400 hover:text-white px-1.5 py-1 min-h-[32px]">▶</button>
                 @if (supabase.isViewingToday()) {
                   <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-500/20 text-cyan-400 font-mono">TODAY</span>
                 } @else {
@@ -116,12 +119,10 @@ import { EncouragementMessage } from '../../core/models/tracker.models';
         <!-- VIEW 1: REAL-TIME LIVE RADAR -->
         @if (activeView() === 'live') {
           
-          <!-- Top Grid: Streaming Timer & Encouragement Station -->
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
             <!-- STREAMING LIVE TIMER (7 cols) -->
-            <div class="lg:col-span-7 p-6 rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-950 border border-slate-800 shadow-2xl relative overflow-hidden flex flex-col justify-between">
-              <!-- Live Glow Ribbon -->
+            <div class="lg:col-span-7 p-5 sm:p-6 rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-950 border border-slate-800 shadow-2xl relative overflow-hidden flex flex-col justify-between">
               <div class="absolute -top-12 -right-12 w-36 h-36 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
               <div>
@@ -140,7 +141,7 @@ import { EncouragementMessage } from '../../core/models/tracker.models';
                   <div>
                     <span class="text-[10px] uppercase font-bold text-slate-500 block">User Is Currently Tackling:</span>
                     <span class="text-sm font-bold text-white tracking-wide">
-                      {{ supabase.liveTimerState().sessionTitle || 'Deep Cognitive Work' }}
+                      {{ supabase.liveTimerState().sessionTitle || 'Deep Cognitive Focus Block' }}
                     </span>
                   </div>
                   <span class="text-xs font-mono font-semibold" [ngClass]="supabase.liveTimerState().isStudying ? 'text-emerald-400' : 'text-slate-500'">
@@ -150,7 +151,7 @@ import { EncouragementMessage } from '../../core/models/tracker.models';
 
                 <!-- Big Streaming Timer Display -->
                 <div class="text-center py-8 bg-slate-950 rounded-2xl border border-slate-800/80 mb-6 relative">
-                  <div class="font-mono text-6xl md:text-7xl font-black tracking-tight text-white select-none drop-shadow-[0_0_30px_rgba(6,182,212,0.25)]">
+                  <div class="font-mono text-5xl sm:text-7xl font-black tracking-tight text-white select-none drop-shadow-[0_0_30px_rgba(6,182,212,0.25)]">
                     {{ formatLiveTimer() }}
                   </div>
                   <div class="text-xs text-slate-500 font-mono mt-2 uppercase tracking-widest">
@@ -160,13 +161,13 @@ import { EncouragementMessage } from '../../core/models/tracker.models';
               </div>
 
               <!-- Today's Total Hours Accumulated (Live) -->
-              <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+              <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <span class="text-xs text-slate-400 block font-medium">Accumulated Today:</span>
+                  <span class="text-xs text-slate-400 block font-medium">Accumulated For {{ supabase.selectedDate() }}:</span>
                   <span class="text-xl font-black text-cyan-400 font-mono">{{ supabase.todayStudyHours() }} <span class="text-xs text-slate-400">/ 12.0 hrs</span></span>
                 </div>
                 <!-- 8-12h Mini Progress Bar -->
-                <div class="w-1/2">
+                <div class="w-full sm:w-1/2">
                   <div class="flex justify-between text-[10px] font-mono text-slate-400 mb-1">
                     <span>Progress to 12h</span>
                     <span>{{ ((supabase.todayStudyHours() / 12) * 100) | number:'1.0-0' }}%</span>
@@ -179,7 +180,7 @@ import { EncouragementMessage } from '../../core/models/tracker.models';
             </div>
 
             <!-- INTERACTIVE ENCOURAGEMENT & COMMENTS SYSTEM (5 cols) -->
-            <div class="lg:col-span-5 p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-2xl flex flex-col justify-between">
+            <div class="lg:col-span-5 p-5 sm:p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-2xl flex flex-col justify-between">
               <div>
                 <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
                   <div class="flex items-center gap-2">
@@ -199,52 +200,52 @@ import { EncouragementMessage } from '../../core/models/tracker.models';
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
                   <button
                     (click)="sendQuickReaction('Keep Going! 🔥', 'fire')"
-                    class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-amber-500/50 hover:bg-amber-950/20 text-xs font-semibold text-slate-300 hover:text-white transition-all text-center">
+                    class="p-3 rounded-xl bg-slate-950 border border-slate-800 hover:border-amber-500/50 hover:bg-amber-950/20 active:scale-95 text-xs font-semibold text-slate-300 hover:text-white transition-all text-center min-h-[44px]">
                     Keep Going! 🔥
                   </button>
                   <button
                     (click)="sendQuickReaction('So Proud! 👏', 'applause')"
-                    class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-emerald-500/50 hover:bg-emerald-950/20 text-xs font-semibold text-slate-300 hover:text-white transition-all text-center">
+                    class="p-3 rounded-xl bg-slate-950 border border-slate-800 hover:border-emerald-500/50 hover:bg-emerald-950/20 active:scale-95 text-xs font-semibold text-slate-300 hover:text-white transition-all text-center min-h-[44px]">
                     So Proud! 👏
                   </button>
                   <button
                     (click)="sendQuickReaction('Stay Strong 💪', 'muscle')"
-                    class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-cyan-500/50 hover:bg-cyan-950/20 text-xs font-semibold text-slate-300 hover:text-white transition-all text-center">
+                    class="p-3 rounded-xl bg-slate-950 border border-slate-800 hover:border-cyan-500/50 hover:bg-cyan-950/20 active:scale-95 text-xs font-semibold text-slate-300 hover:text-white transition-all text-center min-h-[44px]">
                     Stay Strong 💪
                   </button>
                   <button
                     (click)="sendQuickReaction('Locked In! ⚡', 'lightning')"
-                    class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-indigo-500/50 hover:bg-indigo-950/20 text-xs font-semibold text-slate-300 hover:text-white transition-all text-center">
+                    class="p-3 rounded-xl bg-slate-950 border border-slate-800 hover:border-indigo-500/50 hover:bg-indigo-950/20 active:scale-95 text-xs font-semibold text-slate-300 hover:text-white transition-all text-center min-h-[44px]">
                     Locked In! ⚡
                   </button>
                   <button
                     (click)="sendQuickReaction('Take a Breath ☕', 'coffee')"
-                    class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-violet-500/50 hover:bg-violet-950/20 text-xs font-semibold text-slate-300 hover:text-white transition-all text-center col-span-2 sm:col-span-2">
+                    class="p-3 rounded-xl bg-slate-950 border border-slate-800 hover:border-violet-500/50 hover:bg-violet-950/20 active:scale-95 text-xs font-semibold text-slate-300 hover:text-white transition-all text-center col-span-2 sm:col-span-2 min-h-[44px]">
                     Take a Breath ☕
                   </button>
                 </div>
 
                 <!-- Custom Note Form -->
                 <div class="space-y-2 mb-4">
-                  <div class="flex gap-2">
+                  <div class="flex flex-col sm:flex-row gap-2">
                     <input
                       type="text"
                       [(ngModel)]="guestName"
                       placeholder="Your Name / Handle"
-                      class="w-1/3 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                      class="w-full sm:w-1/3 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500"
                     />
                     <input
                       type="text"
                       [(ngModel)]="customMessage"
                       placeholder="Write encouragement note..."
                       (keyup.enter)="sendCustomComment()"
-                      class="w-2/3 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                      class="w-full sm:w-2/3 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500"
                     />
                   </div>
                   <button
                     (click)="sendCustomComment()"
                     [disabled]="!customMessage.trim()"
-                    class="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-slate-950 font-bold text-xs tracking-wider transition-all shadow-md shadow-amber-500/20">
+                    class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-slate-950 font-bold text-xs tracking-wider transition-all shadow-md shadow-amber-500/20 min-h-[44px]">
                     Send Live Encouragement Note
                   </button>
                 </div>
@@ -279,54 +280,54 @@ import { EncouragementMessage } from '../../core/models/tracker.models';
           <!-- Bottom Grid: Live Habit Radar & Sleep Status -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-            <!-- LIVE HABIT RADAR (Prayers, Gym, Athkar, Reading) -->
-            <div class="p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl space-y-4">
+            <!-- LIVE HABIT RADAR (Read-Only) -->
+            <div class="p-5 sm:p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl space-y-4">
               <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                 <h3 class="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
                   <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  Live Habit Radar (Real-Time Sync)
+                  Live Habit Radar (Read-Only)
                 </h3>
                 <span class="text-xs font-mono font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-500/20 px-2 py-0.5 rounded-full">
                   {{ supabase.prayersCompletedCount() }}/5 Prayers Done
                 </span>
               </div>
 
-              <!-- Prayer Checklist Stream -->
+              <!-- Prayer Checklist Stream (Read-Only) -->
               <div class="grid grid-cols-5 gap-2">
-                <div class="p-2.5 rounded-xl border text-center transition-all"
+                <div class="p-2.5 rounded-xl border text-center transition-all select-none"
                   [ngClass]="supabase.dailyHabits()?.fajr ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-400' : 'bg-slate-950 border-slate-800 text-slate-600'">
                   <div class="text-[10px] uppercase font-bold font-mono">Fajr</div>
                   <div class="text-sm font-bold mt-1">{{ supabase.dailyHabits()?.fajr ? '✓' : '○' }}</div>
                 </div>
 
-                <div class="p-2.5 rounded-xl border text-center transition-all"
+                <div class="p-2.5 rounded-xl border text-center transition-all select-none"
                   [ngClass]="supabase.dailyHabits()?.dhuhr ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-400' : 'bg-slate-950 border-slate-800 text-slate-600'">
                   <div class="text-[10px] uppercase font-bold font-mono">Dhuhr</div>
                   <div class="text-sm font-bold mt-1">{{ supabase.dailyHabits()?.dhuhr ? '✓' : '○' }}</div>
                 </div>
 
-                <div class="p-2.5 rounded-xl border text-center transition-all"
+                <div class="p-2.5 rounded-xl border text-center transition-all select-none"
                   [ngClass]="supabase.dailyHabits()?.asr ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-400' : 'bg-slate-950 border-slate-800 text-slate-600'">
                   <div class="text-[10px] uppercase font-bold font-mono">Asr</div>
                   <div class="text-sm font-bold mt-1">{{ supabase.dailyHabits()?.asr ? '✓' : '○' }}</div>
                 </div>
 
-                <div class="p-2.5 rounded-xl border text-center transition-all"
+                <div class="p-2.5 rounded-xl border text-center transition-all select-none"
                   [ngClass]="supabase.dailyHabits()?.maghrib ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-400' : 'bg-slate-950 border-slate-800 text-slate-600'">
                   <div class="text-[10px] uppercase font-bold font-mono">Maghrib</div>
                   <div class="text-sm font-bold mt-1">{{ supabase.dailyHabits()?.maghrib ? '✓' : '○' }}</div>
                 </div>
 
-                <div class="p-2.5 rounded-xl border text-center transition-all"
+                <div class="p-2.5 rounded-xl border text-center transition-all select-none"
                   [ngClass]="supabase.dailyHabits()?.isha ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-400' : 'bg-slate-950 border-slate-800 text-slate-600'">
                   <div class="text-[10px] uppercase font-bold font-mono">Isha</div>
                   <div class="text-sm font-bold mt-1">{{ supabase.dailyHabits()?.isha ? '✓' : '○' }}</div>
                 </div>
               </div>
 
-              <!-- Gym & Athkar Status -->
+              <!-- Gym & Reading Status (Read-Only) -->
               <div class="grid grid-cols-2 gap-3 pt-2">
-                <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between select-none">
                   <div>
                     <span class="text-[10px] uppercase font-bold text-slate-500 block">Gym / Workout</span>
                     <span class="text-xs font-bold" [ngClass]="supabase.dailyHabits()?.workout_done ? 'text-emerald-400' : 'text-rose-400'">
@@ -336,7 +337,7 @@ import { EncouragementMessage } from '../../core/models/tracker.models';
                   <span class="text-lg">{{ supabase.dailyHabits()?.workout_done ? '🏋️' : '⏳' }}</span>
                 </div>
 
-                <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between select-none">
                   <div>
                     <span class="text-[10px] uppercase font-bold text-slate-500 block">Book Reading</span>
                     <span class="text-xs font-bold text-cyan-400 font-mono">
@@ -348,15 +349,15 @@ import { EncouragementMessage } from '../../core/models/tracker.models';
               </div>
             </div>
 
-            <!-- LIVE SLEEP & ENERGY RADAR -->
-            <div class="p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl space-y-4">
+            <!-- LIVE SLEEP & ENERGY RADAR (Read-Only) -->
+            <div class="p-5 sm:p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl space-y-4">
               <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                 <h3 class="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
                   <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
                   Circadian Recovery Status
                 </h3>
                 <span class="text-xs text-amber-400 font-mono">
-                  {{ '★'.repeat(supabase.todaySleepLog()?.quality_rating || 4) }} Quality
+                  {{ supabase.todaySleepLog() ? '★'.repeat(supabase.todaySleepLog()?.quality_rating || 0) : 'Awaiting Sleep Log' }}
                 </span>
               </div>
 
@@ -364,19 +365,25 @@ import { EncouragementMessage } from '../../core/models/tracker.models';
                 <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
                   <div class="text-[10px] uppercase font-bold text-slate-500">Sleep Duration</div>
                   <div class="text-2xl font-black text-indigo-400 font-mono mt-1">
-                    {{ supabase.todaySleepLog()?.total_hours || '7.5' }}h
+                    {{ supabase.todaySleepLog()?.total_hours || 0 }}h
                   </div>
-                  <div class="text-[10px] text-slate-400 mt-1 font-mono">
-                    {{ supabase.todaySleepLog()?.sleep_time || '23:00' }} → {{ supabase.todaySleepLog()?.wake_time || '06:30' }}
+                  <div class="text-[10px] text-slate-400 mt-1 font-mono truncate">
+                    @if (supabase.todaySleepLog()) {
+                      {{ supabase.todaySleepLog()?.sleep_time }} → {{ supabase.todaySleepLog()?.wake_time }}
+                    } @else {
+                      No sleep logged
+                    }
                   </div>
                 </div>
 
                 <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex flex-col justify-between">
                   <div>
-                    <div class="text-[10px] uppercase font-bold text-slate-500">Consistency Status</div>
-                    <div class="text-xs font-bold text-emerald-400 mt-1">Optimal Circadian Synchronization</div>
+                    <div class="text-[10px] uppercase font-bold text-slate-500">Recovery Status</div>
+                    <div class="text-xs font-bold text-emerald-400 mt-1">
+                      {{ supabase.todaySleepLog() ? 'Circadian Recovery Recorded' : 'Pending Sleep Entry' }}
+                    </div>
                   </div>
-                  <span class="text-[10px] text-slate-500">High prefrontal energy available for deep work</span>
+                  <span class="text-[10px] text-slate-500">Master tenant synchronization active</span>
                 </div>
               </div>
 
@@ -384,11 +391,13 @@ import { EncouragementMessage } from '../../core/models/tracker.models';
               <div class="pt-2">
                 <span class="text-[10px] uppercase font-bold text-slate-500 block mb-2">Active Learning Courses</span>
                 <div class="space-y-2">
-                  @for (c of supabase.courses().slice(0, 2); track c.id) {
+                  @for (c of supabase.courses().slice(0, 3); track c.id) {
                     <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs">
                       <span class="font-bold text-white truncate max-w-xs">{{ c.title }}</span>
                       <span class="font-mono text-cyan-400">{{ c.completed_modules }}/{{ c.total_modules }} ({{ ((c.completed_modules / c.total_modules) * 100) | number:'1.0-0' }}%)</span>
                     </div>
+                  } @empty {
+                    <div class="text-xs text-slate-600 italic py-1">No active courses yet</div>
                   }
                 </div>
               </div>
@@ -400,7 +409,7 @@ import { EncouragementMessage } from '../../core/models/tracker.models';
           
           <!-- VIEW 2: HISTORICAL LOG ACCESS -->
           <div class="space-y-6">
-            <div class="p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl">
+            <div class="p-5 sm:p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl">
               <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
                 <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 Study Sessions Historical Log
@@ -425,7 +434,7 @@ import { EncouragementMessage } from '../../core/models/tracker.models';
                         <td class="py-2.5 px-3 uppercase text-slate-500 text-[10px]">{{ s.mode }}</td>
                       </tr>
                     } @empty {
-                      <tr><td colspan="4" class="text-center py-6 text-slate-600">No sessions recorded</td></tr>
+                      <tr><td colspan="4" class="text-center py-6 text-slate-600">No sessions recorded yet</td></tr>
                     }
                   </tbody>
                 </table>
@@ -433,7 +442,7 @@ import { EncouragementMessage } from '../../core/models/tracker.models';
             </div>
 
             <!-- Historical Sleep Logs -->
-            <div class="p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl">
+            <div class="p-5 sm:p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl">
               <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
                 <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
                 Circadian Sleep Consistency Record
@@ -458,7 +467,7 @@ import { EncouragementMessage } from '../../core/models/tracker.models';
                         <td class="py-2.5 px-3 text-amber-400">{{ '★'.repeat(l.quality_rating) }}</td>
                       </tr>
                     } @empty {
-                      <tr><td colspan="4" class="text-center py-6 text-slate-600">No sleep records</td></tr>
+                      <tr><td colspan="4" class="text-center py-6 text-slate-600">No sleep records yet</td></tr>
                     }
                   </tbody>
                 </table>
@@ -469,9 +478,59 @@ import { EncouragementMessage } from '../../core/models/tracker.models';
 
       </main>
 
+      <!-- Master PIN Unlock Modal -->
+      @if (showPinModal()) {
+        <div class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div class="w-full max-w-sm p-6 rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-amber-400"></span>
+                <h3 class="text-sm font-bold text-white uppercase tracking-wider">Master Access Unlock</h3>
+              </div>
+              <button (click)="togglePinModal()" class="text-slate-500 hover:text-white text-xs">✕</button>
+            </div>
+
+            <p class="text-xs text-slate-400">
+              Enter master unlock passcode to enable full editing controls on this device:
+            </p>
+
+            <div class="space-y-2">
+              <input
+                type="password"
+                [(ngModel)]="enteredPin"
+                (ngModelChange)="pinError.set(false)"
+                placeholder="Enter Passcode"
+                (keyup.enter)="verifyPin()"
+                class="w-full bg-slate-950 border rounded-xl px-4 py-2.5 text-center text-lg tracking-widest text-white focus:outline-none transition-colors"
+                [ngClass]="pinError() ? 'border-rose-500 focus:border-rose-400' : 'border-slate-800 focus:border-amber-500'"
+              />
+              @if (pinError()) {
+                <div class="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold text-center flex items-center justify-center gap-1.5 animate-pulse">
+                  <svg class="w-4 h-4 text-rose-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                  <span>Incorrect Unlock Passcode</span>
+                </div>
+              }
+            </div>
+
+            <div class="flex gap-2 pt-2">
+              <button
+                (click)="togglePinModal()"
+                class="w-1/2 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">
+                Cancel
+              </button>
+              <button
+                (click)="verifyPin()"
+                class="w-1/2 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold shadow-lg shadow-amber-500/20">
+                Unlock
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
       <!-- Footer -->
       <footer class="bg-slate-950 border-t border-slate-800/80 py-4 text-xs text-slate-500 mt-12 text-center">
-        <span>Be Yourself Accountability Companion • Supabase WebSockets Enabled • No Refresh Needed</span>
+        <span>Be Yourself Accountability Companion • Read-Only Live Stream • Supabase WebSockets Enabled</span>
       </footer>
 
     </div>
@@ -480,10 +539,16 @@ import { EncouragementMessage } from '../../core/models/tracker.models';
 export class LiveCompanionComponent {
   public supabase = inject(SupabaseService);
   private sound = inject(SoundService);
+  private auth = inject(AuthService);
+  private router = inject(Router);
 
   public activeView = signal<'live' | 'history'>('live');
   public guestName = 'Accountability Partner';
   public customMessage = '';
+
+  public showPinModal = signal<boolean>(false);
+  public enteredPin = '';
+  public pinError = signal<boolean>(false);
 
   public formatLiveTimer(): string {
     const state = this.supabase.liveTimerState();
@@ -505,5 +570,22 @@ export class LiveCompanionComponent {
     this.sound.playClickTone();
     await this.supabase.sendEncouragement(this.guestName, this.customMessage.trim(), 'text');
     this.customMessage = '';
+  }
+
+  public togglePinModal(): void {
+    this.showPinModal.update(v => !v);
+    this.enteredPin = '';
+    this.pinError.set(false);
+  }
+
+  public verifyPin(): void {
+    if (this.auth.unlockMaster(this.enteredPin.trim())) {
+      this.sound.playSuccessTone();
+      this.showPinModal.set(false);
+      this.router.navigate(['/']);
+    } else {
+      this.sound.playErrorTone();
+      this.pinError.set(true);
+    }
   }
 }

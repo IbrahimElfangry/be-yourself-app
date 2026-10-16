@@ -1,11 +1,13 @@
 import { Routes } from '@angular/router';
 import { MainDashboardComponent } from './features/main-dashboard/main-dashboard.component';
 import { LiveCompanionComponent } from './features/live-companion/live-companion.component';
+import { masterAuthGuard } from './core/guards/master-auth.guard';
 
 export const routes: Routes = [
   {
     path: '',
     component: MainDashboardComponent,
+    canActivate: [masterAuthGuard],
     title: 'Be Yourself | High-Performance Discipline Suite'
   },
   {

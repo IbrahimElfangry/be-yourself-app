@@ -1,7 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { StudyTrackerComponent } from '../study-tracker/study-tracker.component';
 import { SleepTrackerComponent } from '../sleep-tracker/sleep-tracker.component';
 import { DisciplineChecklistComponent } from '../discipline-checklist/discipline-checklist.component';
@@ -9,6 +9,7 @@ import { SupabaseService } from '../../core/services/supabase.service';
 import { PwaService } from '../../core/services/pwa.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { SoundService } from '../../core/services/sound.service';
+import { AuthService } from '../../core/services/auth.service';
 
 export type MainTab = 'overview' | 'study' | 'sleep' | 'discipline';
 
@@ -24,9 +25,9 @@ export type MainTab = 'overview' | 'study' | 'sleep' | 'discipline';
     DisciplineChecklistComponent
   ],
   template: `
-    <div class="space-y-6">
+    <div class="space-y-6 pb-24 md:pb-12">
 
-      <!-- Navigation Tab Bar & Live Link Pill -->
+      <!-- Top Tab Bar (Desktop & Tablet) -->
       <nav class="bg-slate-950 border-b border-slate-800/80 sticky top-16 z-30 backdrop-blur-md">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-center justify-between py-2.5">
@@ -34,7 +35,7 @@ export type MainTab = 'overview' | 'study' | 'sleep' | 'discipline';
               <button
                 (click)="switchTab('overview')"
                 [class]="activeTab() === 'overview' ? 'bg-slate-800 text-white border border-slate-700' : 'text-slate-400 hover:text-slate-200'"
-                class="px-3.5 py-1.5 rounded-xl transition-all whitespace-nowrap flex items-center gap-1.5">
+                class="px-3.5 py-1.5 rounded-xl transition-all whitespace-nowrap flex items-center gap-1.5 min-h-[36px]">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
                 All Overview
               </button>
@@ -42,7 +43,7 @@ export type MainTab = 'overview' | 'study' | 'sleep' | 'discipline';
               <button
                 (click)="switchTab('study')"
                 [class]="activeTab() === 'study' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30' : 'text-slate-400 hover:text-slate-200'"
-                class="px-3.5 py-1.5 rounded-xl transition-all whitespace-nowrap flex items-center gap-1.5">
+                class="px-3.5 py-1.5 rounded-xl transition-all whitespace-nowrap flex items-center gap-1.5 min-h-[36px]">
                 <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
                 1. Study & Pomodoro
               </button>
@@ -50,7 +51,7 @@ export type MainTab = 'overview' | 'study' | 'sleep' | 'discipline';
               <button
                 (click)="switchTab('sleep')"
                 [class]="activeTab() === 'sleep' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30' : 'text-slate-400 hover:text-slate-200'"
-                class="px-3.5 py-1.5 rounded-xl transition-all whitespace-nowrap flex items-center gap-1.5">
+                class="px-3.5 py-1.5 rounded-xl transition-all whitespace-nowrap flex items-center gap-1.5 min-h-[36px]">
                 <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
                 2. Sleep & Energy
               </button>
@@ -58,28 +59,35 @@ export type MainTab = 'overview' | 'study' | 'sleep' | 'discipline';
               <button
                 (click)="switchTab('discipline')"
                 [class]="activeTab() === 'discipline' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'text-slate-400 hover:text-slate-200'"
-                class="px-3.5 py-1.5 rounded-xl transition-all whitespace-nowrap flex items-center gap-1.5">
+                class="px-3.5 py-1.5 rounded-xl transition-all whitespace-nowrap flex items-center gap-1.5 min-h-[36px]">
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                 3. Prayers & Habits
               </button>
             </div>
 
-            <!-- Accountability Partner Live Link -->
+            <!-- Partner Live Link & Lock Controls -->
             <div class="flex items-center gap-2">
               <a
                 routerLink="/live-stream"
-                class="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 text-xs font-semibold transition-all flex items-center gap-1.5">
+                class="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 text-xs font-semibold transition-all flex items-center gap-1.5 min-h-[36px]">
                 <span class="w-2 h-2 rounded-full bg-rose-400 animate-ping"></span>
                 <span class="hidden sm:inline">Partner Live View</span>
                 <span class="sm:hidden">Live</span>
               </a>
 
-              <!-- Copy Live Stream URL Button -->
               <button
                 (click)="copyLiveLink()"
                 title="Copy Live Stream Link for Partner"
-                class="p-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-colors">
+                class="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-colors min-h-[36px]">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+              </button>
+
+              <!-- Lock Master Button -->
+              <button
+                (click)="lockSession()"
+                title="Lock Master Access (Switch to Read-Only Guest Mode)"
+                class="p-2 rounded-xl bg-slate-900 hover:bg-rose-950/40 border border-slate-800 text-slate-400 hover:text-rose-400 transition-colors min-h-[36px]">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
               </button>
             </div>
           </div>
@@ -94,13 +102,13 @@ export type MainTab = 'overview' | 'study' | 'sleep' | 'discipline';
             <button
               (click)="supabase.navigateDate(-1)"
               title="Previous Day"
-              class="p-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition-colors flex items-center gap-1 text-xs">
+              class="p-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition-colors flex items-center gap-1 text-xs min-h-[40px]">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
               <span class="hidden sm:inline">Prev Day</span>
             </button>
 
             <!-- Native Date Picker Input & Display -->
-            <div class="flex items-center gap-2 bg-slate-950 px-3.5 py-1.5 rounded-xl border border-slate-800">
+            <div class="flex items-center gap-2 bg-slate-950 px-3.5 py-2 rounded-xl border border-slate-800 min-h-[40px]">
               <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
               </svg>
@@ -121,7 +129,7 @@ export type MainTab = 'overview' | 'study' | 'sleep' | 'discipline';
             <button
               (click)="supabase.navigateDate(1)"
               title="Next Day"
-              class="p-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition-colors flex items-center gap-1 text-xs">
+              class="p-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition-colors flex items-center gap-1 text-xs min-h-[40px]">
               <span class="hidden sm:inline">Next Day</span>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </button>
@@ -132,7 +140,7 @@ export type MainTab = 'overview' | 'study' | 'sleep' | 'discipline';
             @if (!supabase.isViewingToday()) {
               <button
                 (click)="supabase.jumpToToday()"
-                class="px-3.5 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 text-xs font-bold tracking-wide transition-all flex items-center gap-1.5 animate-pulse">
+                class="px-3.5 py-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 text-xs font-bold tracking-wide transition-all flex items-center gap-1.5 animate-pulse min-h-[40px]">
                 <span>↩ Return to Today ({{ supabase.todayDateString() }})</span>
               </button>
             }
@@ -146,7 +154,6 @@ export type MainTab = 'overview' | 'study' | 'sleep' | 'discipline';
       <!-- Streak & Real-Time KPI Banner -->
       <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        <!-- Streak Engine Highlight (Calculated dynamically) -->
         <div class="mb-4 p-4 rounded-2xl bg-gradient-to-r from-amber-950/40 via-slate-900 to-slate-950 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xl">
           <div class="flex items-center gap-3">
             <span class="text-3xl">🔥</span>
@@ -253,7 +260,7 @@ export type MainTab = 'overview' | 'study' | 'sleep' | 'discipline';
       </section>
 
       <!-- Main Workspace Views -->
-      <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12 pb-12">
+      <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
 
         <!-- OVERVIEW TAB -->
         @if (activeTab() === 'overview') {
@@ -289,6 +296,51 @@ export type MainTab = 'overview' | 'study' | 'sleep' | 'discipline';
 
       </main>
 
+      <!-- ======================================================== -->
+      <!-- MOBILE-FIRST BOTTOM NAVIGATION BAR (md:hidden) -->
+      <!-- ======================================================== -->
+      <nav class="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-slate-950/95 backdrop-blur-xl border-t border-slate-800/90 shadow-[0_-10px_25px_rgba(0,0,0,0.5)]">
+        <div class="grid grid-cols-4 h-16 max-w-md mx-auto">
+          
+          <!-- Tab 1: Overview -->
+          <button
+            (click)="switchTab('overview')"
+            class="flex flex-col items-center justify-center gap-1 transition-all active:scale-95"
+            [ngClass]="activeTab() === 'overview' ? 'text-white' : 'text-slate-500 hover:text-slate-400'">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+            <span class="text-[10px] font-bold tracking-tight">All</span>
+          </button>
+
+          <!-- Tab 2: Study -->
+          <button
+            (click)="switchTab('study')"
+            class="flex flex-col items-center justify-center gap-1 transition-all active:scale-95"
+            [ngClass]="activeTab() === 'study' ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-400'">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span class="text-[10px] font-bold tracking-tight">Study</span>
+          </button>
+
+          <!-- Tab 3: Sleep -->
+          <button
+            (click)="switchTab('sleep')"
+            class="flex flex-col items-center justify-center gap-1 transition-all active:scale-95"
+            [ngClass]="activeTab() === 'sleep' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-400'">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+            <span class="text-[10px] font-bold tracking-tight">Sleep</span>
+          </button>
+
+          <!-- Tab 4: Discipline & Habits -->
+          <button
+            (click)="switchTab('discipline')"
+            class="flex flex-col items-center justify-center gap-1 transition-all active:scale-95"
+            [ngClass]="activeTab() === 'discipline' ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-400'">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span class="text-[10px] font-bold tracking-tight">Habits</span>
+          </button>
+
+        </div>
+      </nav>
+
     </div>
   `
 })
@@ -296,6 +348,8 @@ export class MainDashboardComponent {
   public supabase = inject(SupabaseService);
   public pwa = inject(PwaService);
   public notifications = inject(NotificationService);
+  private auth = inject(AuthService);
+  private router = inject(Router);
   private sound = inject(SoundService);
 
   public activeTab = signal<MainTab>('overview');
@@ -313,5 +367,11 @@ export class MainDashboardComponent {
         alert(`Accountability Live Stream Link copied to clipboard!\n\nSend this to your partner:\n${liveUrl}`);
       });
     }
+  }
+
+  public lockSession(): void {
+    this.sound.playClickTone();
+    this.auth.lockMaster();
+    this.router.navigate(['/live-stream']);
   }
 }
